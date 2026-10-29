@@ -1,4 +1,5 @@
-name: Student Result ML CI-CD
+
+name: Hospital Risk ML CI-CD
 
 on:
   push:
@@ -13,7 +14,7 @@ permissions:
   contents: read
 
 jobs:
-  train-test-deliver:
+  train-and-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -28,34 +29,34 @@ jobs:
       - name: Upgrade pip
         run: python -m pip install --upgrade pip
 
-      - name: Install dependencies
+      - name: Install ML dependencies
         run: pip install -r requirements.txt
 
-      - name: Train student result model
+      - name: Train Hospital Risk model
         run: python train_model.py
 
-      - name: Check ML quality gate
+      - name: Run quality gate
         run: python quality_gate.py
 
-      - name: Run automated ML tests
-        run: python -m unittest test_ml_pipeline.py -v
-
-      - name: Run prediction application tests
-        run: python -m unittest test_app.py -v
+      - name: Run automated ML and API tests
+        run: python -m unittest discover -v
 
       - name: Prepare release candidate
         run: |
-          mkdir -p release_candidate
-          cp app.py release_candidate/
-          cp student_result_model.pkl release_candidate/
-          cp metrics.json release_candidate/
-          cp requirements.txt release_candidate/
-          printf "Student Result Prediction ML Application\nRun: python app.py\nEndpoint: POST /predict\n" > release_candidate/DEPLOYMENT.txt
+          mkdir -p release-candidate
+          cp app.py release-candidate/
+          cp hospital_risk_model.pkl release-candidate/
+          cp metrics.json release-candidate/
+          cp requirements.txt release-candidate/
+          printf '%s\n' \
+            'Hospital Risk Prediction - Release Candidate' \
+            'Model: hospital_risk_model.pkl' \
+            'Validation: quality gate and automated tests passed' \
+            > release-candidate/DEPLOYMENT.txt
 
       - name: Upload release candidate
         uses: actions/upload-artifact@v4
         with:
-          name: student-result-ml-release
-          path: release_candidate/
+          name: hospital-risk-ml-release
+          path: release-candidate/
           if-no-files-found: error
-          retention-days: 7
