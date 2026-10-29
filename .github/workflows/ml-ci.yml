@@ -1,4 +1,4 @@
-name: Hospital Risk ML CI-CD
+name: Student Result ML CI-CD
 
 on:
   push:
@@ -31,7 +31,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Train hospital risk model
+      - name: Train student result model
         run: python train_model.py
 
       - name: Check ML quality gate
@@ -47,15 +47,15 @@ jobs:
         run: |
           mkdir -p release_candidate
           cp app.py release_candidate/
-          cp hospital_risk_model.pkl release_candidate/
+          cp student_result_model.pkl release_candidate/
           cp metrics.json release_candidate/
           cp requirements.txt release_candidate/
-          printf "Hospital Risk Prediction ML Application\nRun: python app.py\nEndpoint: POST /predict\n" > release_candidate/DEPLOYMENT.txt
+          printf "Student Result Prediction ML Application\nRun: python app.py\nEndpoint: POST /predict\n" > release_candidate/DEPLOYMENT.txt
 
       - name: Upload release candidate
         uses: actions/upload-artifact@v4
         with:
-          name: hospital-risk-ml-release
+          name: student-result-ml-release
           path: release_candidate/
           if-no-files-found: error
           retention-days: 7
