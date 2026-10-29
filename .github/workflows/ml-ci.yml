@@ -47,10 +47,14 @@ jobs:
           cp hospital_risk_model.pkl release-candidate/
           cp metrics.json release-candidate/
           cp requirements.txt release-candidate/
+          cp Dockerfile release-candidate/
+          cp .dockerignore release-candidate/
           printf '%s\n' \
-            'Hospital Risk Prediction - Release Candidate' \
-            'Model: hospital_risk_model.pkl' \
-            'Validation: quality gate and automated tests passed' \
+            'Hospital Risk Prediction ML Application' \
+            'Run: python app.py' \
+            'Health endpoint: GET /health' \
+            'Prediction endpoint: POST /predict' \
+            'Container port: 5000' \
             > release-candidate/DEPLOYMENT.txt
 
       - name: Upload release candidate
