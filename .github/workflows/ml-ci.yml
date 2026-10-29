@@ -57,9 +57,11 @@ jobs:
             'Container port: 5000' \
             > release-candidate/DEPLOYMENT.txt
 
+      
       - name: Upload release candidate
         uses: actions/upload-artifact@v4
         with:
           name: hospital-risk-ml-release
           path: release-candidate/
           if-no-files-found: error
+          include-hidden-files: true
