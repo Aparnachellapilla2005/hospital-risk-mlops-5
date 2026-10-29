@@ -47,7 +47,7 @@ def create_dataset():
         + np.where(bp == "High", 1.2, np.where(bp == "Low", 0.2, 0.0))
         + np.where(smoking == "Yes", 1.0, 0.0)
         + np.where(exercise == "Low", 0.6, np.where(exercise == "High", -0.6, 0.0))
-        + rng.normal(0, 1.0, size=n)
+        + rng.normal(0, 0.7, size=n)
     )
 
     # 1 = HIGH RISK, 0 = LOW RISK
