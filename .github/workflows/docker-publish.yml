@@ -1,0 +1,86 @@
+
+name: Build Test and Publish Hospital Risk Prediction
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: hospital-risk-prediction
+
+jobs:
+  build-test-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t hospital-risk-prediction:ci .
+
+      - name: Start test container
+        run: |
+          docker run -d \
+            --name hospital-risk-ci \
+            -p 5000:5000 \
+            hospital-risk-prediction:ci
+
+      - name: Test API health endpoint
+        run: |
+          for attempt in {1..20}; do
+            if curl --fail --silent http://localhost:5000/health; then
+              echo "Health check passed."
+              exit 0
+            fi
+            echo "Waiting for application..."
+            sleep 3
+          done
+
+          echo "Health check failed."
+          docker logs hospital-risk-ci
+          exit 1
+
+      - name: Test prediction endpoint
+        run: |
+          response=$(curl --fail --silent --show-error \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -d '{"Age":80,"Gender":"Male","Height_cm":170,"Weight_kg":110,"BP":"High","Cholesterol":300,"Glucose":200,"Smoking":"Yes","ExerciseLevel":"Low","BMI":38.1}' \
+            http://localhost:5000/predict)
+
+          echo "Prediction response: $response"
+          echo "$response" | grep -q '"prediction"'
+
+      - name: Remove test container
+        if: always()
+        run: docker rm -f hospital-risk-ci || true
+
+      - name: Prepare lowercase GHCR image name
+        run: |
+          IMAGE_ID="${REGISTRY}/${{ github.repository_owner }}/${IMAGE_NAME}"
+          IMAGE_ID=$(echo "$IMAGE_ID" | tr '[:upper:]' '[:lower:]')
+          echo "IMAGE_ID=$IMAGE_ID" >> "$GITHUB_ENV"
+
+      - name: Log in to GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | \
+            docker login "$REGISTRY" \
+              -u "${{ github.actor }}" \
+              --password-stdin
+
+      - name: Tag tested image
+        run: |
+          docker tag hospital-risk-prediction:ci "$IMAGE_ID:latest"
+          docker tag hospital-risk-prediction:ci "$IMAGE_ID:sha-${{ github.sha }}"
+
+      - name: Push tested image to GHCR
+        run: |
+          docker push "$IMAGE_ID:latest"
+          docker push "$IMAGE_ID:sha-${{ github.sha }}"
