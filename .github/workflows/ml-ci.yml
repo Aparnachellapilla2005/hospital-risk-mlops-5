@@ -39,6 +39,50 @@ jobs:
 
       - name: Run automated ML and API tests
         run: python -m unittest discover -v
+        
+      - name: Build Docker image
+        run: docker build -t hospital-risk-ml:${{ github.sha }} .
+
+      - name: Start Docker container
+        run: |
+          docker run -d \
+            --name hospital-risk-ml-container \
+            -p 5000:5000 \
+            hospital-risk-ml:${{ github.sha }}
+
+      - name: Wait for application to become ready
+        run: |
+          for i in {1..15}; do
+            if curl --fail --silent http://localhost:5000/health; then
+              echo "Application is ready."
+              exit 0
+            fi
+            echo "Waiting for application... attempt $i"
+            sleep 2
+          done
+
+          echo "Application did not become ready."
+          docker logs hospital-risk-ml-container || true
+          exit 1
+
+      - name: Test prediction endpoint
+        run: |
+          response=$(curl --fail --silent --show-error \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -d '{"Age":80,"Gender":"Male","Height_cm":170,"Weight_kg":110,"BP":"High","Cholesterol":300,"Glucose":200,"Smoking":"Yes","ExerciseLevel":"Low","BMI":38.1}' \
+            http://localhost:5000/predict)
+
+          echo "Prediction response: $response"
+          echo "$response" | grep -q '"prediction"'
+
+      - name: Show Docker container logs
+        if: always()
+        run: docker logs hospital-risk-ml-container || true
+
+      - name: Stop and remove Docker container
+        if: always()
+        run: docker rm -f hospital-risk-ml-container || true
 
       - name: Prepare release candidate
         run: |
