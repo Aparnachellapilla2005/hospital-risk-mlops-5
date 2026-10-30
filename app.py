@@ -45,9 +45,9 @@ def load_model():
 def health_check():
     return jsonify({
         "status": "ok",
-        "service": "hospital-risk-prediction"
+        "service": "hospital-risk-prediction",
+        "version": "2.0"
     })
-
 
 @app.post("/predict")
 def predict():
